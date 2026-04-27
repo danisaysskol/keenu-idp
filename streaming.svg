@@ -1,13 +1,15 @@
-<svg viewBox="0 0 900 700" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 800 650" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <style>
       .actor { fill: #f5f4ed; stroke: #c96442; stroke-width: 2; }
-      .text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
-      .title { font-size: 16px; font-weight: 700; }
-      .label { font-size: 12px; fill: #555; }
-      .message-arrow { fill: none; stroke: #c96442; stroke-width: 1.5; marker-end: url(#arrowhead); }
-      .response-arrow { fill: none; stroke: #16a34a; stroke-width: 1.5; marker-end: url(#arrowhead-green); stroke-dasharray: 3,3; }
-      .box { fill: #fffbf0; stroke: #d97757; stroke-width: 1; padding: 8px; }
+      .msg-box { fill: #fffbf0; stroke: #d97757; stroke-width: 1; }
+      text { font-family: Arial, sans-serif; }
+      .title { font-weight: bold; font-size: 13px; }
+      .label { font-size: 11px; fill: #555; }
+      .code { font-family: 'Courier New', monospace; font-size: 10px; fill: #333; }
+      .arrow { stroke: #c96442; stroke-width: 1.5; fill: none; marker-end: url(#arrowhead); }
+      .response { stroke: #16a34a; stroke-dasharray: 3,3; marker-end: url(#arrowhead-green); }
+      .timeline { stroke: #ddd; stroke-width: 1; stroke-dasharray: 2,4; }
     </style>
     <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
       <polygon points="0 0, 10 3, 0 6" fill="#c96442"/>
@@ -17,62 +19,57 @@
     </marker>
   </defs>
 
-  <text x="450" y="25" class="text title" text-anchor="middle">NDJSON Streaming Exchange</text>
+  <text x="400" y="25" class="title" text-anchor="middle" font-size="16">NDJSON Streaming Exchange</text>
 
   <!-- Actors -->
-  <rect x="80" y="60" width="140" height="50" class="actor" rx="4"/>
-  <text x="150" y="90" class="text title" text-anchor="middle">Browser</text>
+  <rect x="80" y="50" width="120" height="40" rx="4" class="actor"/>
+  <text x="140" y="75" class="title" text-anchor="middle">Browser</text>
 
-  <rect x="680" y="60" width="140" height="50" class="actor" rx="4"/>
-  <text x="750" y="90" class="text title" text-anchor="middle">FastAPI</text>
+  <rect x="600" y="50" width="120" height="40" rx="4" class="actor"/>
+  <text x="660" y="75" class="title" text-anchor="middle">FastAPI</text>
 
   <!-- Timelines -->
-  <line x1="150" y1="110" x2="150" y2="680" stroke="#ddd" stroke-width="1" stroke-dasharray="2,4"/>
-  <line x1="750" y1="110" x2="750" y2="680" stroke="#ddd" stroke-width="1" stroke-dasharray="2,4"/>
+  <line x1="140" y1="90" x2="140" y2="630" class="timeline"/>
+  <line x1="660" y1="90" x2="660" y2="630" class="timeline"/>
 
   <!-- Message 1: Upload -->
-  <path d="M 150 140 L 750 160" class="message-arrow"/>
-  <text x="450" y="145" class="label" text-anchor="middle" font-weight="bold">1. POST /api/jobs (multipart)</text>
+  <path d="M 140 120 L 660 140" class="arrow"/>
+  <text x="400" y="125" class="label" text-anchor="middle" font-weight="bold">1. POST /api/jobs (multipart)</text>
 
-  <!-- Response 1: Initial state -->
-  <path d="M 750 190 L 150 210" class="response-arrow"/>
-  <rect x="160" y="220" width="580" height="50" class="box"/>
-  <text x="450" y="240" class="label" text-anchor="middle" font-family="monospace" font-size="11">{"status":"processing","processed":0,"total":3,"images":[...</text>
-  <text x="450" y="255" class="label" text-anchor="middle" font-family="monospace" font-size="11">{"status":"pending"}]}</text>
+  <!-- Response 1: Initial -->
+  <path d="M 660 170 L 140 190" class="response"/>
+  <rect x="155" y="200" width="470" height="45" rx="4" class="msg-box"/>
+  <text x="400" y="218" class="code" text-anchor="middle">{"status":"processing","processed":0,"total":3,"images":[...]}</text>
 
-  <!-- Processing image 1 -->
-  <path d="M 750 290 L 150 310" class="response-arrow"/>
-  <rect x="160" y="320" width="580" height="50" class="box"/>
-  <text x="450" y="340" class="label" text-anchor="middle" font-family="monospace" font-size="11">{"status":"processing","processed":0,"total":3,"images":[</text>
-  <text x="450" y="355" class="label" text-anchor="middle" font-family="monospace" font-size="11">{"status":"processing","filename":"img1.jpg"}]}</text>
+  <!-- Response 2: Image 1 processing -->
+  <path d="M 660 270 L 140 290" class="response"/>
+  <rect x="155" y="300" width="470" height="45" rx="4" class="msg-box"/>
+  <text x="400" y="318" class="code" text-anchor="middle">{"status":"processing","images":[{"status":"processing",...}]}</text>
 
-  <!-- Image 1 done -->
-  <path d="M 750 390 L 150 410" class="response-arrow"/>
-  <rect x="160" y="420" width="580" height="65" class="box"/>
-  <text x="450" y="438" class="label" text-anchor="middle" font-family="monospace" font-size="11">{"status":"processing","processed":1,"total":3,"images":[</text>
-  <text x="450" y="453" class="label" text-anchor="middle" font-family="monospace" font-size="11">{"status":"done","category":"cnic","fields":{...}},</text>
-  <text x="450" y="468" class="label" text-anchor="middle" font-family="monospace" font-size="11">{"status":"processing","filename":"img2.jpg"}]}</text>
+  <!-- Response 3: Image 1 done -->
+  <path d="M 660 370 L 140 390" class="response"/>
+  <rect x="155" y="400" width="470" height="55" rx="4" class="msg-box"/>
+  <text x="400" y="415" class="code" text-anchor="middle">{"status":"processing","processed":1,"total":3,</text>
+  <text x="400" y="430" class="code" text-anchor="middle">"images":[{"status":"done","category":"cnic",...}]}</text>
 
-  <!-- Processing image 2 & 3 -->
-  <circle cx="150" cy="510" r="3" fill="#999"/>
-  <circle cx="750" cy="510" r="3" fill="#999"/>
-  <circle cx="150" cy="530" r="3" fill="#999"/>
-  <circle cx="750" cy="530" r="3" fill="#999"/>
-  <circle cx="150" cy="550" r="3" fill="#999"/>
-  <circle cx="750" cy="550" r="3" fill="#999"/>
+  <!-- Dots for omitted messages -->
+  <circle cx="140" cy="490" r="2" fill="#999"/>
+  <circle cx="660" cy="490" r="2" fill="#999"/>
+  <circle cx="140" cy="510" r="2" fill="#999"/>
+  <circle cx="660" cy="510" r="2" fill="#999"/>
 
-  <!-- Final response: Complete -->
-  <path d="M 750 590 L 150 610" class="response-arrow"/>
-  <rect x="160" y="620" width="580" height="65" class="box"/>
-  <text x="450" y="638" class="label" text-anchor="middle" font-family="monospace" font-size="11">{"status":"complete","processed":3,"total":3,"output_files":[</text>
-  <text x="450" y="653" class="label" text-anchor="middle" font-family="monospace" font-size="11">{"filename":"20260428_004615_cnic.json","format":"json",</text>
-  <text x="450" y="668" class="label" text-anchor="middle" font-family="monospace" font-size="11">"content":"[{\"name\":\"...\",\"cnic_number\":\"...\"}]"}]}</text>
+  <!-- Final Response: Complete -->
+  <path d="M 660 540 L 140 560" class="response"/>
+  <rect x="155" y="570" width="470" height="60" rx="4" class="msg-box"/>
+  <text x="400" y="585" class="code" text-anchor="middle">{"status":"complete","processed":3,"total":3,</text>
+  <text x="400" y="600" class="code" text-anchor="middle">"output_files":[{"filename":"...json","format":"json",</text>
+  <text x="400" y="615" class="code" text-anchor="middle">"content":"[{\"name\":\"...\"}]"}]}</text>
 
   <!-- Legend -->
-  <text x="80" y="710" class="text label" font-weight="bold">Key:</text>
-  <line x1="140" y1="705" x2="170" y2="705" stroke="#c96442" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-  <text x="180" y="710" class="text label">Request/Stream</text>
+  <text x="80" y="645" class="label" font-weight="bold">Key:</text>
+  <line x1="130" y1="640" x2="160" y2="640" class="arrow"/>
+  <text x="175" y="645" class="label">Request</text>
 
-  <line x1="380" y1="705" x2="410" y2="705" stroke="#16a34a" stroke-width="1.5" stroke-dasharray="3,3" marker-end="url(#arrowhead-green)"/>
-  <text x="420" y="710" class="text label">NDJSON Response (one line per update)</text>
+  <line x1="300" y1="640" x2="330" y2="640" class="response"/>
+  <text x="345" y="645" class="label">NDJSON Response</text>
 </svg>
