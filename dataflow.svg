@@ -1,0 +1,72 @@
+<svg viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .step { fill: #f5f4ed; stroke: #c96442; stroke-width: 2; }
+      .step-text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; font-weight: 600; }
+      .arrow { fill: none; stroke: #c96442; stroke-width: 2; marker-end: url(#arrowhead); }
+      .label { font-size: 12px; fill: #666; }
+      .result { fill: #f0fdf4; stroke: #16a34a; stroke-width: 2; }
+      .error { fill: #fee2e2; stroke: #dc2626; stroke-width: 2; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#c96442"/>
+    </marker>
+  </defs>
+
+  <text x="400" y="25" class="step-text" text-anchor="middle" font-size="18">Per-Image Data Pipeline</text>
+
+  <!-- Start -->
+  <circle cx="400" cy="60" r="25" fill="#c96442"/>
+  <text x="400" y="67" class="step-text" text-anchor="middle" fill="white">Image</text>
+
+  <!-- Step 1: Validate -->
+  <path d="M 400 85 L 400 120" class="arrow"/>
+  <rect x="320" y="120" width="160" height="50" class="step" rx="4"/>
+  <text x="400" y="148" class="step-text" text-anchor="middle">Validate & Resize</text>
+  <text x="400" y="165" class="label" text-anchor="middle">if >4MB: shrink to 2000px</text>
+
+  <!-- Step 2: Classify -->
+  <path d="M 400 170 L 400 205" class="arrow"/>
+  <rect x="280" y="205" width="240" height="60" class="step" rx="4"/>
+  <text x="400" y="230" class="step-text" text-anchor="middle">Gemini: Classify</text>
+  <text x="400" y="250" class="label" text-anchor="middle">Response: {"category": "cnic"}</text>
+
+  <!-- Step 3: Extract Fields -->
+  <path d="M 400 265 L 400 300" class="arrow"/>
+  <rect x="240" y="300" width="320" height="70" class="step" rx="4"/>
+  <text x="400" y="325" class="step-text" text-anchor="middle">Gemini: Extract Fields</text>
+  <text x="400" y="345" class="label" text-anchor="middle">Response: {"name": "Ali Khan", "cnic_number": "12345-1234567-1",</text>
+  <text x="400" y="360" class="label" text-anchor="middle">"date_of_birth": "1990-05-15", ...}</text>
+
+  <!-- Step 4: Validate -->
+  <path d="M 400 370 L 400 405" class="arrow"/>
+  <rect x="280" y="405" width="240" height="50" class="step" rx="4"/>
+  <text x="400" y="430" class="step-text" text-anchor="middle">Validate + Normalize</text>
+  <text x="400" y="447" class="label" text-anchor="middle">snake_case keys, type checks</text>
+
+  <!-- Step 5: Schema Merge -->
+  <path d="M 400 455 L 400 490" class="arrow"/>
+  <rect x="260" y="490" width="280" height="60" class="step" rx="4"/>
+  <text x="400" y="515" class="step-text" text-anchor="middle">Schema Merge</text>
+  <text x="400" y="532" class="label" text-anchor="middle">Union all keys, null-fill missing</text>
+
+  <!-- Outputs -->
+  <path d="M 260 550 L 180 570" class="arrow"/>
+  <path d="M 400 550 L 400 570" class="arrow"/>
+  <path d="M 540 550 L 620 570" class="arrow"/>
+
+  <!-- JSON Output -->
+  <rect x="100" y="570" width="160" height="50" class="result" rx="4"/>
+  <text x="180" y="590" class="step-text" text-anchor="middle">category.json</text>
+  <text x="180" y="608" class="label" text-anchor="middle">Embedded in response</text>
+
+  <!-- CSV Output -->
+  <rect x="320" y="570" width="160" height="50" class="result" rx="4"/>
+  <text x="400" y="590" class="step-text" text-anchor="middle">category.csv</text>
+  <text x="400" y="608" class="label" text-anchor="middle">Embedded in response</text>
+
+  <!-- PDF Output -->
+  <rect x="540" y="570" width="160" height="50" class="result" rx="4"/>
+  <text x="620" y="590" class="step-text" text-anchor="middle">category.pdf</text>
+  <text x="620" y="608" class="label" text-anchor="middle">Disk file, download link</text>
+</svg>

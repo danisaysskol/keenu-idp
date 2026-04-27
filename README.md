@@ -4,6 +4,8 @@ AI-powered document classification and data extraction for Keenu (Pakistan digit
 
 **Live demo:** [keenu-idp-danish.vercel.app](https://keenu-idp-danish.vercel.app)
 
+> 🌍 **Public & Accessible Everywhere** — No login required. Try it from any device, anywhere in the world. Upload your own documents or use the sample images included in the sidebar.
+
 ---
 
 ## Problem Statement
@@ -53,89 +55,17 @@ Scan printed claim/application forms → extract all key-value pairs → auto-po
 
 ### System Components
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│ Frontend (React, Vite) — Vercel                             │
-│                                                             │
-│  ┌──────────────┐              ┌──────────────────────┐   │
-│  │   Sidebar    │              │   Main Content       │   │
-│  │              │              │                      │   │
-│  │ Sample imgs  │──►           │ 1. FileUploader      │   │
-│  │ Click/drag   │              │ 2. ProcessingStatus  │   │
-│  └──────────────┘              │    (live cards)      │   │
-│                                │ 3. OutputPanel       │   │
-│                                │    (View/Download)   │   │
-│                                └──────────────────────┘   │
-└──────────┬──────────────────────────────────────────────────┘
-           │ POST /api/jobs
-           │ ↓ NDJSON stream (1 line per image)
-           ↓
-┌─────────────────────────────────────────────────────────────┐
-│ Backend (FastAPI, Python 3.11) — Heroku                     │
-│                                                             │
-│  POST /api/jobs                                            │
-│  └─► process_job_stream (async generator)                  │
-│      ├─ for each image (serial):                           │
-│      │  ├─ classify_document()  ──► Gemini API             │
-│      │  ├─ extract_fields()    ──► Gemini API             │
-│      │  ├─ validate_fields()                               │
-│      │  └─ yield updated JobState JSON                     │
-│      ├─ merge schemas (union keys, null-fill)             │
-│      └─ generate JSON + CSV + PDF outputs                  │
-│         └─ embed JSON/CSV content in response              │
-└─────────────────────────────────────────────────────────────┘
-```
+![Architecture Diagram](architecture.svg)
 
 ### Data Flow (Per Image)
 
-```
-Image bytes (JPEG/PNG/WebP)
-    ↓
-[Validate & Resize if >4MB]
-    ↓
-[Gemini: Classify] ──────────────► "cnic" | "driving_licence" | etc
-    ↓
-[Gemini: Extract Fields] ────────► {"name": "...", "cnic_number": "...", ...}
-    ↓
-[Validate + Normalize] ──────────► snake_case keys, type checks
-    ↓
-[Schema Merge] ──────────────────► union all keys, null-fill missing
-    ↓
-┌─────────────────────────────────┐
-│ Output Files (per category)     │
-├─────────────────────────────────┤
-│ • category.json (embedded)      │
-│ • category.csv (embedded)       │
-│ • category.pdf (disk, download) │
-└─────────────────────────────────┘
-```
+![Data Flow Diagram](dataflow.svg)
 
 ### Stream Message Format (NDJSON)
 
-Browser sends multipart POST, backend streams:
-```
-{"job_id":"abc-123","status":"processing","processed":0,"total":3,"images":[
-  {"filename":"img1.jpg","status":"pending"},
-  {"filename":"img2.jpg","status":"pending"},
-  {"filename":"img3.jpg","status":"pending"}
-]}
-{"job_id":"abc-123","status":"processing","processed":0,"total":3,"images":[
-  {"filename":"img1.jpg","status":"processing"},
-  ...
-]}
-{"job_id":"abc-123","status":"processing","processed":1,"total":3,"images":[
-  {"filename":"img1.jpg","status":"done","category":"cnic","fields":{...}},
-  {"filename":"img2.jpg","status":"processing"},
-  ...
-]}
-...
-{"job_id":"abc-123","status":"complete","processed":3,"total":3,"images":[...],
- "output_files":[
-   {"filename":"...json","category":"cnic","format":"json","content":"[{...}]"},
-   {"filename":"...csv","category":"cnic","format":"csv","content":"name,cnic_number,..."},
-   {"filename":"...pdf","category":"cnic","format":"pdf"}
- ]}
-```
+Browser sends multipart POST, backend streams one JSON line per state change:
+
+![Streaming Diagram](streaming.svg)
 
 ---
 
