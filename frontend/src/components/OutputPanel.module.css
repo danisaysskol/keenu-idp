@@ -9,14 +9,22 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 20px 20px 16px;
+  padding: 18px 20px;
   border-bottom: 1px solid var(--color-border-light);
-  background: var(--color-surface-raised);
 }
 
 .headingIcon {
-  font-size: 28px;
-  line-height: 1;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #dcfce7;
+  color: #16a34a;
+  font-size: 18px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .title {
@@ -38,6 +46,7 @@
 
 .categoryCard {
   border-bottom: 1px solid var(--color-border-light);
+  padding: 16px 20px;
 }
 
 .categoryCard:last-child {
@@ -45,86 +54,60 @@
 }
 
 .categoryHeader {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 20px;
-  background: none;
-  border: none;
-  text-align: left;
-  cursor: pointer;
-  transition: background 0.1s;
-}
-
-.categoryHeader:hover {
-  background: var(--color-border-light);
-}
-
-.categoryLeft {
   display: flex;
   align-items: center;
   gap: 12px;
+  margin-bottom: 14px;
 }
 
 .categoryEmoji {
   font-size: 22px;
   line-height: 1;
+  flex-shrink: 0;
+}
+
+.categoryMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .categoryName {
-  display: block;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--color-text);
   text-transform: capitalize;
 }
 
 .recordCount {
-  display: block;
   font-size: 12px;
   color: var(--color-text-muted);
 }
 
-.chevron {
-  font-size: 20px;
-  color: var(--color-text-faint);
-  transform: rotate(0deg);
-  transition: transform 0.2s;
-  display: inline-block;
+/* 3-column grid for JSON / CSV / PDF cards */
+.fileGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
 }
 
-.chevron.open {
-  transform: rotate(90deg);
-}
-
-.fileActions {
-  padding: 0 20px 12px;
+.fileCard {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-}
-
-.fileRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px;
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-md);
-  gap: 12px;
-}
-
-.fileInfo {
-  display: flex;
-  align-items: center;
   gap: 10px;
-  min-width: 0;
-  flex: 1;
+  padding: 12px 14px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
 }
 
-/* Format tag base */
+.fileCardTop {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
 .formatTag {
   font-size: 10px;
   font-weight: 700;
@@ -141,85 +124,84 @@
 }
 
 .formatTag.csv {
-  color: var(--color-success);
-  background: rgba(45, 122, 79, 0.08);
-  border: 1px solid rgba(45, 122, 79, 0.2);
+  color: #15803d;
+  background: rgba(21, 128, 61, 0.08);
+  border: 1px solid rgba(21, 128, 61, 0.2);
 }
 
 .formatTag.pdf {
-  color: #7C3AED;
+  color: #7c3aed;
   background: rgba(124, 58, 237, 0.08);
   border: 1px solid rgba(124, 58, 237, 0.2);
 }
 
 .filename {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--color-text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex: 1;
 }
 
-.pageCount {
-  font-size: 11px;
-  color: var(--color-text-faint);
-  flex-shrink: 0;
-}
-
-.actions {
+.fileCardActions {
   display: flex;
-  gap: 8px;
-  flex-shrink: 0;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
+/* Primary view button — stands out */
 .viewBtn {
+  flex: 1;
   font-size: 12px;
   font-weight: 600;
-  color: var(--color-primary);
-  background: rgba(201, 100, 66, 0.08);
-  border: 1px solid rgba(201, 100, 66, 0.2);
+  color: #fff;
+  background: var(--color-primary);
+  border: none;
   border-radius: var(--radius-sm);
-  padding: 5px 12px;
-  transition: background 0.1s;
+  padding: 6px 10px;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.15s;
 }
 
 .viewBtn:hover {
-  background: rgba(201, 100, 66, 0.15);
+  background: var(--color-secondary);
 }
 
 .openBtn {
+  flex: 1;
   font-size: 12px;
   font-weight: 600;
-  color: #7C3AED;
+  color: #7c3aed;
   background: rgba(124, 58, 237, 0.08);
   border: 1px solid rgba(124, 58, 237, 0.2);
   border-radius: var(--radius-sm);
-  padding: 5px 12px;
-  transition: background 0.1s;
+  padding: 6px 10px;
   text-decoration: none;
-  display: inline-block;
+  text-align: center;
+  transition: background 0.15s;
 }
 
 .openBtn:hover {
   background: rgba(124, 58, 237, 0.15);
-  text-decoration: none;
 }
 
 .downloadBtn {
+  flex: 1;
   font-size: 12px;
   font-weight: 600;
   color: var(--color-text-muted);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  padding: 5px 12px;
-  transition: background 0.1s, color 0.1s;
+  padding: 6px 10px;
   text-decoration: none;
-  display: inline-block;
+  text-align: center;
+  transition: background 0.15s, color 0.15s;
 }
 
 .downloadBtn:hover {
   background: var(--color-border-light);
   color: var(--color-text);
-  text-decoration: none;
 }

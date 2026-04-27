@@ -84,8 +84,9 @@ def generate_outputs(job_id: str, results: list[dict]) -> list[OutputFile]:
         # ── JSON ──────────────────────────────────────────────────────────────
         json_filename = f"{timestamp}_{category}.json"
         json_path = job_dir / json_filename
+        json_content = json.dumps(merged, indent=2, default=str)
         with open(json_path, "w", encoding="utf-8") as f:
-            json.dump(merged, f, indent=2, default=str)
+            f.write(json_content)
         logger.info("Wrote JSON: %s (%d records)", json_filename, record_count)
         output_files.append(OutputFile(
             filename=json_filename,
@@ -93,16 +94,20 @@ def generate_outputs(job_id: str, results: list[dict]) -> list[OutputFile]:
             format="json",
             record_count=record_count,
             path=str(json_path),
+            content=json_content,
         ))
 
         # ── CSV ───────────────────────────────────────────────────────────────
         csv_filename = f"{timestamp}_{category}.csv"
         csv_path = job_dir / csv_filename
+        csv_buf = io.StringIO()
+        writer = csv.DictWriter(csv_buf, fieldnames=columns, extrasaction="ignore")
+        writer.writeheader()
+        for row in merged:
+            writer.writerow({k: ("" if v is None else v) for k, v in row.items()})
+        csv_content = csv_buf.getvalue()
         with open(csv_path, "w", newline="", encoding="utf-8-sig") as f:
-            writer = csv.DictWriter(f, fieldnames=columns, extrasaction="ignore")
-            writer.writeheader()
-            for row in merged:
-                writer.writerow({k: ("" if v is None else v) for k, v in row.items()})
+            f.write(csv_content)
         logger.info("Wrote CSV: %s (%d records)", csv_filename, record_count)
         output_files.append(OutputFile(
             filename=csv_filename,
@@ -110,6 +115,7 @@ def generate_outputs(job_id: str, results: list[dict]) -> list[OutputFile]:
             format="csv",
             record_count=record_count,
             path=str(csv_path),
+            content=csv_content,
         ))
 
         # ── PDF ───────────────────────────────────────────────────────────────

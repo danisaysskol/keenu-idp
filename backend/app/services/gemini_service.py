@@ -63,12 +63,10 @@ def _get_client() -> genai.Client:
 
 
 def _get_generation_config() -> types.GenerateContentConfig:
-    # Do NOT pass ThinkingConfig — flash-lite does not support it and the
-    # API raises a 400 error that gets silently swallowed, causing all
-    # classifications to fall back to "other".
     return types.GenerateContentConfig(
         temperature=0.1,
         response_mime_type="application/json",
+        thinking_config=types.ThinkingConfig(thinking_budget=0),
     )
 
 

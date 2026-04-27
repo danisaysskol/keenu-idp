@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { getDownloadUrl } from '../services/api'
 import styles from './OutputPanel.module.css'
 
@@ -12,14 +11,9 @@ const CATEGORY_EMOJI = {
   other: '📁',
 }
 
-const FORMAT_LABEL = { json: 'JSON', csv: 'CSV', pdf: 'PDF' }
-
 export default function OutputPanel({ jobId, files, onViewFile }) {
-  const [expanded, setExpanded] = useState(null)
-
   if (!files || files.length === 0) return null
 
-  // Group by category, keeping json/csv/pdf together
   const byCategory = {}
   for (const f of files) {
     if (!byCategory[f.category]) byCategory[f.category] = {}
@@ -27,15 +21,18 @@ export default function OutputPanel({ jobId, files, onViewFile }) {
   }
 
   const categoryCount = Object.keys(byCategory).length
+  const totalRecords = files
+    .filter(f => f.format !== 'pdf')
+    .reduce((s, f) => s + (f.record_count || 0), 0) / 2 | 0 // json+csv counted once
 
   return (
     <div className={styles.container}>
       <div className={styles.heading}>
-        <span className={styles.headingIcon}>📦</span>
+        <div className={styles.headingIcon}>✓</div>
         <div>
-          <h2 className={styles.title}>Generated Outputs</h2>
+          <h2 className={styles.title}>Extraction complete</h2>
           <p className={styles.subtitle}>
-            {categoryCount} {categoryCount === 1 ? 'category' : 'categories'} · {files.length} files
+            {categoryCount} {categoryCount === 1 ? 'category' : 'categories'} · {totalRecords} {totalRecords === 1 ? 'record' : 'records'} extracted
           </p>
         </div>
       </div>
@@ -46,70 +43,53 @@ export default function OutputPanel({ jobId, files, onViewFile }) {
           const jsonFile = fmtMap['json']
           const pdfFile  = fmtMap['pdf']
           const recordCount = jsonFile?.record_count ?? csvFile?.record_count ?? 0
-          const pageCount   = pdfFile?.record_count ?? 0
-          const isExpanded  = expanded === category
 
           return (
             <div key={category} className={styles.categoryCard}>
-              <button
-                className={styles.categoryHeader}
-                onClick={() => setExpanded(isExpanded ? null : category)}
-                aria-expanded={isExpanded}
-              >
-                <div className={styles.categoryLeft}>
-                  <span className={styles.categoryEmoji}>
-                    {CATEGORY_EMOJI[category] || '📁'}
+              <div className={styles.categoryHeader}>
+                <span className={styles.categoryEmoji}>
+                  {CATEGORY_EMOJI[category] || '📁'}
+                </span>
+                <div className={styles.categoryMeta}>
+                  <span className={styles.categoryName}>
+                    {category.replace(/_/g, ' ')}
                   </span>
-                  <div>
-                    <span className={styles.categoryName}>
-                      {category.replace(/_/g, ' ')}
-                    </span>
-                    <span className={styles.recordCount}>
-                      {recordCount} {recordCount === 1 ? 'record' : 'records'}
-                      {pdfFile && ` · ${pageCount}-page PDF`}
-                    </span>
-                  </div>
+                  <span className={styles.recordCount}>
+                    {recordCount} {recordCount === 1 ? 'record' : 'records'}
+                    {pdfFile && ` · ${pdfFile.record_count}-page PDF`}
+                  </span>
                 </div>
-                <span className={`${styles.chevron} ${isExpanded ? styles.open : ''}`}>›</span>
-              </button>
+              </div>
 
-              {isExpanded && (
-                <div className={styles.fileActions}>
-                  {/* JSON row */}
-                  {jsonFile && (
-                    <FileRow
-                      file={jsonFile}
-                      jobId={jobId}
-                      label="JSON"
-                      onView={() => onViewFile(jobId, jsonFile)}
-                      canView
-                    />
-                  )}
-
-                  {/* CSV row */}
-                  {csvFile && (
-                    <FileRow
-                      file={csvFile}
-                      jobId={jobId}
-                      label="CSV"
-                      onView={() => onViewFile(jobId, csvFile)}
-                      canView
-                    />
-                  )}
-
-                  {/* PDF row — open in new tab instead of table view */}
-                  {pdfFile && (
-                    <FileRow
-                      file={pdfFile}
-                      jobId={jobId}
-                      label="PDF"
-                      onView={null}
-                      canView={false}
-                      pageCount={pageCount}
-                    />
-                  )}
-                </div>
-              )}
+              <div className={styles.fileGrid}>
+                {jsonFile && (
+                  <FileCard
+                    file={jsonFile}
+                    jobId={jobId}
+                    label="JSON"
+                    canView={!!jsonFile.content}
+                    onView={() => onViewFile(jsonFile)}
+                  />
+                )}
+                {csvFile && (
+                  <FileCard
+                    file={csvFile}
+                    jobId={jobId}
+                    label="CSV"
+                    canView={!!csvFile.content}
+                    onView={() => onViewFile(csvFile)}
+                  />
+                )}
+                {pdfFile && (
+                  <FileCard
+                    file={pdfFile}
+                    jobId={jobId}
+                    label="PDF"
+                    canView={false}
+                    onView={null}
+                  />
+                )}
+              </div>
             </div>
           )
         })}
@@ -118,29 +98,27 @@ export default function OutputPanel({ jobId, files, onViewFile }) {
   )
 }
 
-function FileRow({ file, jobId, label, onView, canView, pageCount }) {
+function FileCard({ file, jobId, label, canView, onView }) {
   const downloadUrl = getDownloadUrl(jobId, file.filename)
+  const isPdf = label === 'PDF'
 
   return (
-    <div className={styles.fileRow}>
-      <div className={styles.fileInfo}>
+    <div className={styles.fileCard}>
+      <div className={styles.fileCardTop}>
         <span className={`${styles.formatTag} ${styles[label.toLowerCase()]}`}>
-          {FORMAT_LABEL[label.toLowerCase()] || label}
+          {label}
         </span>
         <span className={styles.filename} title={file.filename}>
           {file.filename}
         </span>
-        {pageCount != null && label === 'PDF' && (
-          <span className={styles.pageCount}>{pageCount} {pageCount === 1 ? 'page' : 'pages'}</span>
-        )}
       </div>
-      <div className={styles.actions}>
+      <div className={styles.fileCardActions}>
         {canView && (
           <button className={styles.viewBtn} onClick={onView}>
             View
           </button>
         )}
-        {label === 'PDF' ? (
+        {isPdf && (
           <a
             className={styles.openBtn}
             href={downloadUrl}
@@ -149,7 +127,7 @@ function FileRow({ file, jobId, label, onView, canView, pageCount }) {
           >
             Open
           </a>
-        ) : null}
+        )}
         <a
           className={styles.downloadBtn}
           href={downloadUrl}

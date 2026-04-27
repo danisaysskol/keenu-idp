@@ -34,16 +34,11 @@ def _validate_image_bytes(image_bytes: bytes) -> bool:
         return False
 
 
-async def process_job(
-    job_id: str,
-    file_data: list[tuple[str, bytes]],  # [(filename, bytes), ...]
-    job_store: dict[str, JobState],
-) -> None:
+async def process_job(job: JobState, file_data: list[tuple[str, bytes]]) -> None:
     """
     Serial pipeline: classify → extract → validate, one image at a time.
-    Sequential processing avoids exhausting the Gemini API quota.
+    Mutates `job` in place; caller awaits this coroutine and then returns job.
     """
-    job = job_store[job_id]
     job.status = JobStatus.processing
     job.total = len(file_data)
     job.images = [ImageResult(filename=name, status="pending") for name, _ in file_data]
@@ -53,12 +48,12 @@ async def process_job(
     for index, (filename, image_bytes) in enumerate(file_data):
         img_result = job.images[index]
         img_result.status = "processing"
-        logger.info("[%s] (%d/%d) Processing %s", job_id, index + 1, job.total, filename)
+        logger.info("(%d/%d) Processing %s", index + 1, job.total, filename)
 
         if not _validate_image_bytes(image_bytes):
             img_result.status = "error"
             img_result.error = "Invalid or corrupted image file"
-            logger.warning("[%s] Skipping corrupted image: %s", job_id, filename)
+            logger.warning("Skipping corrupted image: %s", filename)
             job.processed += 1
             continue
 
@@ -66,7 +61,7 @@ async def process_job(
 
         try:
             category = await classify_document(image_bytes, mime_type)
-            logger.info("[%s] %s → %s", job_id, filename, category)
+            logger.info("%s → %s", filename, category)
 
             fields = await extract_fields(image_bytes, mime_type, category)
             validated = validate_fields(fields, category)
@@ -75,7 +70,6 @@ async def process_job(
             img_result.fields = validated
             img_result.status = "done"
 
-            # image_bytes and mime_type are kept so output_generator can build the PDF
             results.append({
                 "filename": filename,
                 "category": category,
@@ -85,7 +79,7 @@ async def process_job(
             })
 
         except Exception as exc:
-            logger.error("[%s] Failed processing %s: %s", job_id, filename, exc)
+            logger.error("Failed processing %s: %s", filename, exc)
             img_result.status = "error"
             img_result.error = str(exc)
 
@@ -94,14 +88,14 @@ async def process_job(
 
     if results:
         try:
-            output_files = generate_outputs(job_id, results)
+            output_files = generate_outputs(job.job_id, results)
             job.output_files = output_files
-            logger.info("[%s] Generated %d output files", job_id, len(output_files))
+            logger.info("Generated %d output files", len(output_files))
         except Exception as exc:
-            logger.error("[%s] Output generation failed: %s", job_id, exc)
+            logger.error("Output generation failed: %s", exc)
             job.error = f"Output generation failed: {exc}"
             job.status = JobStatus.failed
             return
 
     job.status = JobStatus.complete
-    logger.info("[%s] Done. %d/%d processed.", job_id, job.processed, job.total)
+    logger.info("Done. %d/%d processed.", job.processed, job.total)

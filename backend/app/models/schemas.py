@@ -31,9 +31,10 @@ class ImageResult(BaseModel):
 class OutputFile(BaseModel):
     filename: str
     category: str
-    format: str  # "csv" or "json"
+    format: str  # "csv", "json", or "pdf"
     record_count: int
     path: str
+    content: str | None = None  # raw text content embedded for client-side viewing
 
 
 class JobState(BaseModel):
