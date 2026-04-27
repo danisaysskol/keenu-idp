@@ -1,0 +1,13 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+
+# Environment (Vercel reads these from its dashboard, not files)
+.env.local
+.env.production.local
+.env.development.local
+.env.test.local
+*.local

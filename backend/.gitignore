@@ -1,0 +1,26 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Tests / tooling
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Generated output files (ephemeral on Heroku too)
+output/
+
+# Environment secrets
+.env
+.env.*
+
+# Distribution
+*.egg-info/
+dist/
+build/

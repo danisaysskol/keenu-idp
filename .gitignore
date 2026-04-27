@@ -1,0 +1,31 @@
+# Environment
+.env
+.env.*
+
+# Dataset — too large for git
+dataset/
+
+# Generated outputs — ephemeral
+output/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+*.egg-info/
+venv/
+.venv/
+dist/
+
+# Node
+node_modules/
+*.local
+
+# Build
+frontend/dist/
+frontend/dist-ssr/
+
+# OS
+.DS_Store
+Thumbs.db

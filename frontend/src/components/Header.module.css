@@ -1,0 +1,64 @@
+.header {
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.inner {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo {
+  font-size: 28px;
+  color: var(--color-primary);
+  line-height: 1;
+}
+
+.name {
+  display: block;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-primary);
+  letter-spacing: -0.3px;
+}
+
+.tagline {
+  display: block;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  letter-spacing: 0.2px;
+  margin-top: -2px;
+}
+
+.badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: rgba(201, 100, 66, 0.08);
+  border: 1px solid rgba(201, 100, 66, 0.2);
+  border-radius: 20px;
+  padding: 5px 12px;
+}
+
+.badgeDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-primary);
+}

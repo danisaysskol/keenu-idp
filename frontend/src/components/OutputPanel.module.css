@@ -1,0 +1,225 @@
+.container {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid var(--color-border-light);
+  background: var(--color-surface-raised);
+}
+
+.headingIcon {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 2px;
+}
+
+.subtitle {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.categories {
+  display: flex;
+  flex-direction: column;
+}
+
+.categoryCard {
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.categoryCard:last-child {
+  border-bottom: none;
+}
+
+.categoryHeader {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.categoryHeader:hover {
+  background: var(--color-border-light);
+}
+
+.categoryLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.categoryEmoji {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.categoryName {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  text-transform: capitalize;
+}
+
+.recordCount {
+  display: block;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.chevron {
+  font-size: 20px;
+  color: var(--color-text-faint);
+  transform: rotate(0deg);
+  transition: transform 0.2s;
+  display: inline-block;
+}
+
+.chevron.open {
+  transform: rotate(90deg);
+}
+
+.fileActions {
+  padding: 0 20px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fileRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  gap: 12px;
+}
+
+.fileInfo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+/* Format tag base */
+.formatTag {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  border-radius: 4px;
+  padding: 2px 6px;
+  flex-shrink: 0;
+}
+
+.formatTag.json {
+  color: var(--color-primary);
+  background: rgba(201, 100, 66, 0.1);
+  border: 1px solid rgba(201, 100, 66, 0.2);
+}
+
+.formatTag.csv {
+  color: var(--color-success);
+  background: rgba(45, 122, 79, 0.08);
+  border: 1px solid rgba(45, 122, 79, 0.2);
+}
+
+.formatTag.pdf {
+  color: #7C3AED;
+  background: rgba(124, 58, 237, 0.08);
+  border: 1px solid rgba(124, 58, 237, 0.2);
+}
+
+.filename {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pageCount {
+  font-size: 11px;
+  color: var(--color-text-faint);
+  flex-shrink: 0;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.viewBtn {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: rgba(201, 100, 66, 0.08);
+  border: 1px solid rgba(201, 100, 66, 0.2);
+  border-radius: var(--radius-sm);
+  padding: 5px 12px;
+  transition: background 0.1s;
+}
+
+.viewBtn:hover {
+  background: rgba(201, 100, 66, 0.15);
+}
+
+.openBtn {
+  font-size: 12px;
+  font-weight: 600;
+  color: #7C3AED;
+  background: rgba(124, 58, 237, 0.08);
+  border: 1px solid rgba(124, 58, 237, 0.2);
+  border-radius: var(--radius-sm);
+  padding: 5px 12px;
+  transition: background 0.1s;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.openBtn:hover {
+  background: rgba(124, 58, 237, 0.15);
+  text-decoration: none;
+}
+
+.downloadBtn {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 5px 12px;
+  transition: background 0.1s, color 0.1s;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.downloadBtn:hover {
+  background: var(--color-border-light);
+  color: var(--color-text);
+  text-decoration: none;
+}
