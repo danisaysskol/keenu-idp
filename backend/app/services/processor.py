@@ -1,5 +1,6 @@
 import io
 from pathlib import Path
+from typing import AsyncIterator
 
 from PIL import Image, UnidentifiedImageError
 
@@ -34,20 +35,28 @@ def _validate_image_bytes(image_bytes: bytes) -> bool:
         return False
 
 
-async def process_job(job: JobState, file_data: list[tuple[str, bytes]]) -> None:
+async def process_job_stream(
+    job: JobState,
+    file_data: list[tuple[str, bytes]],
+) -> AsyncIterator[str]:
     """
-    Serial pipeline: classify → extract → validate, one image at a time.
-    Mutates `job` in place; caller awaits this coroutine and then returns job.
+    Async generator. Yields a JSON line (NDJSON) after each significant state
+    change so the frontend can show live per-image progress.
     """
     job.status = JobStatus.processing
     job.total = len(file_data)
     job.images = [ImageResult(filename=name, status="pending") for name, _ in file_data]
+
+    # Yield initial state so frontend can render the image list immediately
+    yield job.model_dump_json() + "\n"
 
     results: list[dict] = []
 
     for index, (filename, image_bytes) in enumerate(file_data):
         img_result = job.images[index]
         img_result.status = "processing"
+        yield job.model_dump_json() + "\n"
+
         logger.info("(%d/%d) Processing %s", index + 1, job.total, filename)
 
         if not _validate_image_bytes(image_bytes):
@@ -55,6 +64,7 @@ async def process_job(job: JobState, file_data: list[tuple[str, bytes]]) -> None
             img_result.error = "Invalid or corrupted image file"
             logger.warning("Skipping corrupted image: %s", filename)
             job.processed += 1
+            yield job.model_dump_json() + "\n"
             continue
 
         mime_type = _get_mime_type(filename)
@@ -85,6 +95,7 @@ async def process_job(job: JobState, file_data: list[tuple[str, bytes]]) -> None
 
         finally:
             job.processed += 1
+            yield job.model_dump_json() + "\n"
 
     if results:
         try:
@@ -95,7 +106,9 @@ async def process_job(job: JobState, file_data: list[tuple[str, bytes]]) -> None
             logger.error("Output generation failed: %s", exc)
             job.error = f"Output generation failed: {exc}"
             job.status = JobStatus.failed
+            yield job.model_dump_json() + "\n"
             return
 
     job.status = JobStatus.complete
     logger.info("Done. %d/%d processed.", job.processed, job.total)
+    yield job.model_dump_json() + "\n"

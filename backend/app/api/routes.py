@@ -2,7 +2,7 @@ import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, UploadFile, File
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 
 from app.config import settings
 from app.models.schemas import (
@@ -10,7 +10,7 @@ from app.models.schemas import (
     HealthResponse,
     JobState,
 )
-from app.services.processor import process_job, SUPPORTED_MIME_TYPES
+from app.services.processor import process_job_stream, SUPPORTED_MIME_TYPES
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -31,9 +31,13 @@ async def health_check() -> HealthResponse:
     )
 
 
-@router.post("/jobs", response_model=JobState)
-async def create_job(files: list[UploadFile] = File(...)) -> JobState:
-    """Process documents synchronously and return the complete result."""
+@router.post("/jobs")
+async def create_job(files: list[UploadFile] = File(...)) -> StreamingResponse:
+    """
+    Process documents and stream NDJSON progress updates.
+    Each line is a complete JobState JSON so the client can render live progress.
+    Final line has status=complete and embedded output file content.
+    """
     if not files:
         raise HTTPException(status_code=400, detail="No files provided")
     if len(files) > _MAX_FILES:
@@ -62,13 +66,15 @@ async def create_job(files: list[UploadFile] = File(...)) -> JobState:
     job = JobState(job_id=job_id, total=len(file_data))
     logger.info("Starting job %s with %d files", job_id, len(file_data))
 
-    await process_job(job, file_data)
-    return job
+    return StreamingResponse(
+        process_job_stream(job, file_data),
+        media_type="application/x-ndjson",
+        headers={"X-Job-Id": job_id},
+    )
 
 
 @router.get("/jobs/{job_id}/download/{filename}")
 async def download_file(job_id: str, filename: str) -> FileResponse:
-    """Download a generated output file by filename."""
     output_dir = Path(settings.output_dir) / job_id
     file_path = output_dir / filename
     if not file_path.exists():

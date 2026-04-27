@@ -1,33 +1,65 @@
-import axios from 'axios'
-
 const BASE_URL = import.meta.env.VITE_API_URL || ''
 
-const api = axios.create({
-  baseURL: BASE_URL,
-  timeout: 300000, // 5 min — processing can take time
-})
-
-export const uploadFiles = async (files) => {
+/**
+ * Upload files and stream NDJSON progress updates.
+ * onProgress(job) is called after each image is processed.
+ * Returns the final complete JobState.
+ */
+export const uploadFiles = async (files, onProgress) => {
   const form = new FormData()
-  for (const file of files) {
-    form.append('files', file)
-  }
-  const { data } = await api.post('/api/jobs', form, {
-    headers: { 'Content-Type': 'multipart/form-data' },
+  for (const file of files) form.append('files', file)
+
+  const response = await fetch(`${BASE_URL}/api/jobs`, {
+    method: 'POST',
+    body: form,
   })
-  return data // complete JobState
+
+  if (!response.ok) {
+    let detail = 'Upload failed'
+    try { detail = (await response.json()).detail || detail } catch {}
+    throw new Error(detail)
+  }
+
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  let lastJob = null
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+
+    buffer += decoder.decode(value, { stream: true })
+    const lines = buffer.split('\n')
+    buffer = lines.pop() // keep any incomplete trailing line
+
+    for (const line of lines) {
+      const trimmed = line.trim()
+      if (!trimmed) continue
+      try {
+        const job = JSON.parse(trimmed)
+        lastJob = job
+        onProgress?.(job)
+      } catch {}
+    }
+  }
+
+  // Handle any remaining buffered content
+  if (buffer.trim()) {
+    try {
+      const job = JSON.parse(buffer.trim())
+      lastJob = job
+      onProgress?.(job)
+    } catch {}
+  }
+
+  return lastJob
 }
 
 export const getDownloadUrl = (jobId, filename) =>
   `${BASE_URL}/api/jobs/${jobId}/download/${filename}`
 
 export const checkHealth = async () => {
-  const { data } = await api.get('/api/health')
-  return data
-}
-
-// Fallback: fetch file content from disk if not embedded in job response
-export const getFileContent = async (jobId, filename) => {
-  const { data } = await api.get(`/api/jobs/${jobId}/files/${filename}`)
-  return data
+  const res = await fetch(`${BASE_URL}/api/health`)
+  return res.json()
 }

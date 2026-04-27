@@ -1,19 +1,4 @@
-import { useEffect, useRef } from 'react'
 import styles from './ProcessingStatus.module.css'
-
-const STATUS_ICON = {
-  pending: '○',
-  processing: '◌',
-  done: '●',
-  error: '✕',
-}
-
-const STATUS_LABEL = {
-  pending: 'Waiting',
-  processing: 'Processing',
-  done: 'Done',
-  error: 'Error',
-}
 
 const CATEGORY_EMOJI = {
   cnic: '🪪',
@@ -25,16 +10,14 @@ const CATEGORY_EMOJI = {
   other: '📁',
 }
 
-export default function ProcessingStatus({ job, onComplete }) {
-  const prevStatus = useRef(null)
+const STATUS_LABEL = {
+  pending: 'Waiting',
+  processing: 'Analysing…',
+  done: 'Done',
+  error: 'Error',
+}
 
-  useEffect(() => {
-    if (job?.status === 'complete' && prevStatus.current !== 'complete') {
-      onComplete?.()
-    }
-    prevStatus.current = job?.status
-  }, [job?.status, onComplete])
-
+export default function ProcessingStatus({ job }) {
   if (!job) return null
 
   const { status, total, processed, images = [] } = job
@@ -44,54 +27,69 @@ export default function ProcessingStatus({ job, onComplete }) {
 
   return (
     <div className={styles.container}>
+      {/* Header */}
       <div className={styles.header}>
         <div className={styles.headerLeft}>
-          <span className={`${styles.statusBadge} ${styles[status]}`}>
+          <span className={`${styles.badge} ${styles[status] || styles.processing}`}>
             {isComplete ? '✓ Complete' : isFailed ? '✕ Failed' : '⟳ Processing'}
           </span>
-          <span className={styles.subtitle}>
+          <span className={styles.counter}>
             {processed} / {total} images
           </span>
         </div>
         <span className={styles.percent}>{progress}%</span>
       </div>
 
-      <div className={styles.progressTrack}>
+      {/* Progress bar */}
+      <div className={styles.track}>
         <div
-          className={`${styles.progressBar} ${isComplete ? styles.complete : ''}`}
+          className={`${styles.bar} ${isComplete ? styles.barComplete : ''}`}
           style={{ width: `${progress}%` }}
         />
       </div>
 
+      {/* Per-image cards */}
       {images.length > 0 && (
-        <div className={styles.imageGrid}>
+        <div className={styles.grid}>
           {images.map((img, i) => (
-            <div
-              key={i}
-              className={`${styles.imageCard} ${styles[img.status]}`}
-              title={img.error || img.filename}
-            >
-              <div className={styles.imageCardTop}>
-                <span className={styles.statusIcon}>{STATUS_ICON[img.status] || '○'}</span>
-                <span className={styles.imageCategory}>
-                  {img.category ? `${CATEGORY_EMOJI[img.category] || '📁'} ${img.category}` : STATUS_LABEL[img.status]}
-                </span>
-              </div>
-              <div className={styles.imageName} title={img.filename}>
-                {img.filename}
-              </div>
-              {img.error && (
-                <div className={styles.imageError}>{img.error}</div>
-              )}
-            </div>
+            <ImageCard key={i} img={img} />
           ))}
         </div>
       )}
 
       {job.error && (
         <div className={styles.jobError}>
-          <strong>Job failed:</strong> {job.error}
+          <strong>Error:</strong> {job.error}
         </div>
+      )}
+    </div>
+  )
+}
+
+function ImageCard({ img }) {
+  const isProcessing = img.status === 'processing'
+  const isDone = img.status === 'done'
+  const isError = img.status === 'error'
+
+  return (
+    <div className={`${styles.card} ${styles[`card_${img.status}`]}`}>
+      <div className={styles.cardTop}>
+        {isProcessing && <span className={styles.pulse} />}
+        {isDone && <span className={styles.iconDone}>✓</span>}
+        {isError && <span className={styles.iconError}>✕</span>}
+        {img.status === 'pending' && <span className={styles.iconPending}>○</span>}
+
+        <span className={styles.cardLabel}>
+          {isDone && img.category
+            ? `${CATEGORY_EMOJI[img.category] || '📁'} ${img.category.replace(/_/g, ' ')}`
+            : STATUS_LABEL[img.status] || img.status}
+        </span>
+      </div>
+      <div className={styles.cardFilename} title={img.filename}>
+        {img.filename}
+      </div>
+      {isError && img.error && (
+        <div className={styles.cardError}>{img.error}</div>
       )}
     </div>
   )

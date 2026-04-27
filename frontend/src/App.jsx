@@ -3,6 +3,7 @@ import Header from './components/Header'
 import Footer from './components/Footer'
 import Sidebar from './components/Sidebar'
 import FileUploader from './components/FileUploader'
+import ProcessingStatus from './components/ProcessingStatus'
 import OutputPanel from './components/OutputPanel'
 import { uploadFiles } from './services/api'
 import styles from './App.module.css'
@@ -14,7 +15,6 @@ function loadSavedJob() {
     const raw = localStorage.getItem(LS_KEY)
     if (!raw) return null
     const saved = JSON.parse(raw)
-    // Discard if older than 2 hours
     if (Date.now() - saved._savedAt > 2 * 60 * 60 * 1000) {
       localStorage.removeItem(LS_KEY)
       return null
@@ -31,7 +31,7 @@ export default function App() {
   const [job, setJob] = useState(null)
   const [uploadError, setUploadError] = useState(null)
   const [addedSampleUrls, setAddedSampleUrls] = useState(new Set())
-  const [viewFile, setViewFile] = useState(null) // { file: OutputFile }
+  const [viewFile, setViewFile] = useState(null)
 
   // Restore last session on mount
   useEffect(() => {
@@ -66,15 +66,20 @@ export default function App() {
 
   const handleUpload = async (filesToUpload) => {
     setUploadError(null)
+    setJob(null)
     setPhase('processing')
 
     try {
-      const result = await uploadFiles(filesToUpload)
-      setJob(result)
-      setPhase('done')
-      localStorage.setItem(LS_KEY, JSON.stringify({ job: result, _savedAt: Date.now() }))
+      const finalJob = await uploadFiles(filesToUpload, (update) => {
+        setJob({ ...update }) // live updates while streaming
+      })
+      if (finalJob) {
+        setJob(finalJob)
+        setPhase('done')
+        localStorage.setItem(LS_KEY, JSON.stringify({ job: finalJob, _savedAt: Date.now() }))
+      }
     } catch (err) {
-      const msg = err?.response?.data?.detail || err.message || 'Upload failed'
+      const msg = err?.message || 'Upload failed'
       setUploadError(msg)
       setPhase('upload')
     }
@@ -155,13 +160,14 @@ export default function App() {
               </>
             )}
 
-            {phase === 'processing' && (
-              <div className={styles.processingScreen}>
+            {phase === 'processing' && job && (
+              <ProcessingStatus job={job} />
+            )}
+
+            {phase === 'processing' && !job && (
+              <div className={styles.processingInit}>
                 <div className={styles.spinner} />
-                <h2 className={styles.processingTitle}>Analysing your documents…</h2>
-                <p className={styles.processingHint}>
-                  AI is classifying and extracting data. This may take up to a minute.
-                </p>
+                <p className={styles.processingHint}>Uploading…</p>
               </div>
             )}
 
@@ -178,30 +184,6 @@ export default function App() {
                     Processing complete but no structured data was extracted.
                     All images may have errored or been unrecognised.
                   </div>
-                )}
-
-                {job?.images?.length > 0 && (
-                  <details className={styles.imageDetails}>
-                    <summary className={styles.imageDetailsSummary}>
-                      Per-image results ({job.images.length} images)
-                    </summary>
-                    <div className={styles.imageGrid}>
-                      {job.images.map((img, i) => (
-                        <div key={i} className={`${styles.imageCard} ${styles[img.status]}`}>
-                          <span className={styles.imageStatus}>
-                            {img.status === 'done' ? '✓' : img.status === 'error' ? '✕' : '○'}
-                          </span>
-                          <span className={styles.imageCategory}>
-                            {img.category ?? img.status}
-                          </span>
-                          <span className={styles.imageName} title={img.filename}>
-                            {img.filename}
-                          </span>
-                          {img.error && <span className={styles.imageError}>{img.error}</span>}
-                        </div>
-                      ))}
-                    </div>
-                  </details>
                 )}
 
                 <div className={styles.actions}>
@@ -240,7 +222,6 @@ function FileViewer({ file, onClose }) {
       if (file.format === 'json') {
         setParsed(JSON.parse(file.content))
       } else {
-        // CSV: parse manually
         const lines = file.content.trim().split('\n')
         const headers = lines[0].split(',').map(h => h.replace(/^"|"$/g, '').trim())
         const rows = lines.slice(1).map(line => {

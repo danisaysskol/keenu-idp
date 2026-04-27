@@ -144,6 +144,14 @@
 }
 
 /* ── Processing screen ───────────────────────────────── */
+.processingInit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 80px 24px;
+  gap: 16px;
+}
+
 .processingScreen {
   display: flex;
   flex-direction: column;

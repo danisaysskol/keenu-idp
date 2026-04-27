@@ -10,86 +10,82 @@ AI-powered document classification and data extraction for Keenu (Pakistan digit
 
 - Classifies documents into 7 categories (CNIC, Driving Licence, Invoices, Receipts, Resumes, Forms, Other)
 - Extracts structured fields using Google Gemini multimodal AI
+- Streams live per-image progress to the browser as each document is processed
 - Outputs per-category JSON, CSV (Excel-compatible), and PDF
 - Sample image sidebar — demo without your own documents
 - Drag-and-drop upload, up to 10 images per batch
-- Results persist in browser storage across page refreshes
+- Results persist in browser `localStorage` across page refreshes
 
 ---
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         Browser (Vercel)                         │
-│                                                                  │
-│  ┌──────────────┐   ┌────────────────────────────────────────┐  │
-│  │   Sidebar    │   │            Main Content                │  │
-│  │              │   │                                        │  │
-│  │ Sample imgs  │   │  1. FileUploader (drag-drop / click)   │  │
-│  │ per category │──▶│  2. Processing spinner (POST in-flight)│  │
-│  │ Click/drag   │   │  3. OutputPanel (JSON · CSV · PDF)     │  │
-│  │ to add       │   │     ↳ View modal (inline table)        │  │
-│  └──────────────┘   │     ↳ Download link                    │  │
-│                      └────────────────────────────────────────┘  │
-└──────────────────────────────┬──────────────────────────────────┘
-                               │  POST /api/jobs (multipart)
-                               │  ← JobState (JSON, sync)
-                               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                      FastAPI Backend (Heroku)                    │
-│                                                                  │
-│  routes.py                                                       │
-│  └── POST /api/jobs ──▶ processor.py                            │
-│                             │                                    │
-│                    for each image (serial):                      │
-│                    ┌─────────────────────┐                       │
-│                    │  1. classify_doc()  │──▶ Gemini API         │
-│                    │  2. extract_fields()│──▶ Gemini API         │
-│                    │  3. validate_fields │                       │
-│                    └─────────────────────┘                       │
-│                             │                                    │
-│                    output_generator.py                           │
-│                    ├── {category}.json  (embedded in response)  │
-│                    ├── {category}.csv   (embedded in response)  │
-│                    └── {category}.pdf  (disk, download only)    │
-│                                                                  │
-│  GET /api/jobs/{id}/download/{file} ──▶ FileResponse            │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    Browser["Browser (Vercel)"]
+    Backend["FastAPI Backend (Heroku)"]
+    Gemini["Google Gemini API"]
+    LS["localStorage"]
+
+    Browser -->|"POST /api/jobs multipart"| Backend
+    Backend -->|"NDJSON stream (one line per image)"| Browser
+    Backend -->|"classify_document()"| Gemini
+    Backend -->|"extract_fields()"| Gemini
+    Gemini -->|"JSON response"| Backend
+    Browser -->|"save results"| LS
+    LS -->|"restore on refresh"| Browser
 ```
 
-### Data flow
+---
 
+## Request / response flow
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant F as Frontend
+    participant B as FastAPI
+    participant G as Gemini
+
+    U->>F: Drop images + click Process
+    F->>B: POST /api/jobs (multipart/form-data)
+    B-->>F: stream: {"status":"processing","images":[...]}
+
+    loop For each image (serial)
+        B-->>F: stream: image[i].status = "processing"
+        B->>G: classify_document(image_bytes)
+        G-->>B: {"category": "cnic"}
+        B->>G: extract_fields(image_bytes, category)
+        G-->>B: {"name": "...", "cnic_number": "..."}
+        B-->>F: stream: image[i].status = "done", category = "cnic"
+    end
+
+    B-->>F: stream: {"status":"complete","output_files":[...]}
+    F->>F: Save to localStorage
+    F->>U: Show results panel
 ```
-Image bytes
-    │
-    ▼
-┌──────────────┐     Gemini multimodal prompt      ┌─────────────────┐
-│  Resize if   │ ──────────────────────────────▶   │  Classification │
-│  > 4 MB      │ ◀──────────────────────────────   │  → category str │
-└──────────────┘     {"category": "cnic"}           └─────────────────┘
-    │
-    ▼
-┌──────────────┐     Gemini multimodal prompt      ┌─────────────────┐
-│  Same image  │ ──────────────────────────────▶   │  Field extract  │
-│  + category  │ ◀──────────────────────────────   │  → JSON fields  │
-└──────────────┘     {"name": "...", "cnic_number": "..."}           
-    │
-    ▼
-┌──────────────┐
-│ validate +   │  Normalise keys (snake_case), type-check values
-│ normalise    │
-└──────────────┘
-    │
-    ▼
-┌──────────────┐
-│ schema_merger│  Union of all keys across records, null-fill missing
-│ per category │
-└──────────────┘
-    │
-    ├── JSON (indent=2, embedded in response for View)
-    ├── CSV  (utf-8-sig for Excel, embedded in response)
-    └── PDF  (Pillow multi-page, disk only, download link)
+
+---
+
+## Per-image pipeline
+
+```mermaid
+flowchart LR
+    IMG[Image bytes] --> RESIZE{"> 4 MB?"}
+    RESIZE -->|Yes| THUMB[Resize to 2000px]
+    RESIZE -->|No| CLASSIFY
+    THUMB --> CLASSIFY
+
+    CLASSIFY["Gemini: classify_document()
+    → category string"]
+    CLASSIFY --> EXTRACT["Gemini: extract_fields()
+    → JSON fields dict"]
+    EXTRACT --> VALIDATE[validate + snake_case keys]
+    VALIDATE --> MERGE[schema_merger: union all keys,
+    null-fill missing]
+    MERGE --> JSON[.json file + embedded in response]
+    MERGE --> CSV[.csv file + embedded in response]
+    MERGE --> PDF[.pdf Pillow multi-page]
 ```
 
 ---
@@ -114,8 +110,9 @@ Image bytes
 |---|---|
 | Frontend | React 18, Vite, CSS Modules |
 | Backend | FastAPI (Python 3.11), Uvicorn |
-| AI | Google Gemini `gemini-3.1-flash-lite-preview` (multimodal) |
+| AI | Google Gemini `gemini-3.1-flash-lite-preview` |
 | PDF generation | Pillow |
+| Streaming | NDJSON over HTTP (`StreamingResponse`) |
 | Frontend hosting | Vercel |
 | Backend hosting | Heroku |
 
@@ -188,46 +185,49 @@ vercel --prod
 keenu_work/
 ├── backend/
 │   ├── app/
-│   │   ├── api/routes.py          # POST /api/jobs (sync), GET download
-│   │   ├── models/schemas.py      # Pydantic models
+│   │   ├── api/routes.py           # POST /api/jobs → StreamingResponse (NDJSON)
+│   │   ├── models/schemas.py       # Pydantic models (JobState, OutputFile, …)
 │   │   ├── services/
-│   │   │   ├── gemini_service.py  # Gemini classify + extract
-│   │   │   ├── processor.py       # Serial image pipeline
-│   │   │   ├── output_generator.py# JSON / CSV / PDF writer
-│   │   │   └── schema_merger.py   # Key normalisation + union
+│   │   │   ├── gemini_service.py   # classify_document + extract_fields
+│   │   │   ├── processor.py        # process_job_stream async generator
+│   │   │   ├── output_generator.py # JSON / CSV / PDF writer
+│   │   │   └── schema_merger.py    # key normalisation + schema union
 │   │   ├── utils/
 │   │   │   ├── logger.py
 │   │   │   └── validators.py
 │   │   ├── config.py
-│   │   └── main.py                # FastAPI app, CORS
+│   │   └── main.py                 # FastAPI app, CORS
 │   ├── tests/
 │   ├── Procfile
 │   ├── runtime.txt
 │   └── requirements.txt
 ├── frontend/
-│   ├── public/samples/            # 30 sample images (5 per category)
+│   ├── public/samples/             # 30 sample images (5 per category)
 │   ├── src/
 │   │   ├── components/
 │   │   │   ├── Header.jsx
-│   │   │   ├── Footer.jsx
-│   │   │   ├── Sidebar.jsx        # Sample image browser
-│   │   │   ├── FileUploader.jsx   # Drag-drop upload zone
-│   │   │   └── OutputPanel.jsx    # Results grid (View / Download)
-│   │   ├── data/samples.js        # Static sample image manifest
-│   │   ├── services/api.js        # Axios client
-│   │   ├── App.jsx                # App shell, localStorage persistence
+│   │   │   ├── Footer.jsx          # GitHub link
+│   │   │   ├── Sidebar.jsx         # Sample image browser
+│   │   │   ├── FileUploader.jsx    # Drag-drop upload zone
+│   │   │   ├── ProcessingStatus.jsx# Live per-image progress cards
+│   │   │   └── OutputPanel.jsx     # Results grid (View / Download)
+│   │   ├── data/samples.js         # Static sample image manifest
+│   │   ├── services/api.js         # fetch-based NDJSON stream reader
+│   │   ├── App.jsx                 # App shell + inline file viewer modal
 │   │   └── main.jsx
 │   ├── vercel.json
 │   └── vite.config.js
-├── dataset/                       # (gitignored) local test images
-└── .env                           # (gitignored) GOOGLE_API_KEY
+├── dataset/                        # (gitignored) local test images
+└── .env                            # (gitignored) GOOGLE_API_KEY
 ```
 
 ---
 
 ## Notes
 
-- **Heroku ephemeral filesystem**: output files on disk are cleared on dyno restart. JSON and CSV content is embedded in the API response and saved to browser `localStorage` so results survive a page refresh. PDF download links require the dyno to be alive.
+- **NDJSON streaming**: backend writes one JSON line per state change; frontend reads with `ReadableStream` and updates React state incrementally, keeping the UI responsive during long jobs.
+- **localStorage persistence**: when processing completes the full `JobState` (including embedded file content) is saved to `localStorage` and restored on page reload for up to 2 hours.
+- **Heroku ephemeral filesystem**: output files on disk are cleared on dyno restart. JSON and CSV content is embedded in the response so View works regardless. PDF download links require the dyno to be alive.
 - **Serial Gemini calls**: each image makes 2 sequential API calls (classify then extract) to avoid exhausting free-tier quota. Processing time is roughly 5–15 seconds per image.
 - **10-image limit**: enforced on both frontend and backend.
 
