@@ -55,17 +55,17 @@ Scan printed claim/application forms → extract all key-value pairs → auto-po
 
 ### System Components
 
-![Architecture Diagram](architecture.svg)
+![Architecture Diagram](architecture.png)
 
 ### Data Flow (Per Image)
 
-![Data Flow Diagram](dataflow.svg)
+![Data Flow Diagram](dataflow.png)
 
 ### Stream Message Format (NDJSON)
 
 Browser sends multipart POST, backend streams one JSON line per state change:
 
-![Streaming Diagram](streaming.svg)
+![Streaming Diagram](streaming.png)
 
 ---
 
