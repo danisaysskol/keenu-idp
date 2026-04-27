@@ -53,19 +53,71 @@ Scan printed claim/application forms → extract all key-value pairs → auto-po
 
 ## Architecture
 
-### System Components
+### System Overview
 
-![Architecture Diagram](architecture.png)
+```mermaid
+graph TD
+    Browser["Browser (Vercel)"]
+    Backend["FastAPI Backend (Heroku)"]
+    Gemini["Google Gemini API"]
+    LS["localStorage"]
 
-### Data Flow (Per Image)
+    Browser -->|"POST /api/jobs multipart"| Backend
+    Backend -->|"NDJSON stream (one line per image)"| Browser
+    Backend -->|"classify_document()"| Gemini
+    Backend -->|"extract_fields()"| Gemini
+    Gemini -->|"JSON response"| Backend
+    Browser -->|"save results"| LS
+    LS -->|"restore on refresh"| Browser
+```
 
-![Data Flow Diagram](dataflow.png)
+### Request / Response Flow
 
-### Stream Message Format (NDJSON)
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant F as Frontend
+    participant B as FastAPI
+    participant G as Gemini
 
-Browser sends multipart POST, backend streams one JSON line per state change:
+    U->>F: Drop images + click Process
+    F->>B: POST /api/jobs (multipart/form-data)
+    B-->>F: stream: {"status":"processing","images":[...]}
 
-![Streaming Diagram](streaming.png)
+    loop For each image (serial)
+        B-->>F: stream: image[i].status = "processing"
+        B->>G: classify_document(image_bytes)
+        G-->>B: {"category": "cnic"}
+        B->>G: extract_fields(image_bytes, category)
+        G-->>B: {"name": "...", "cnic_number": "..."}
+        B-->>F: stream: image[i].status = "done", category = "cnic"
+    end
+
+    B-->>F: stream: {"status":"complete","output_files":[...]}
+    F->>F: Save to localStorage
+    F->>U: Show results panel
+```
+
+### Per-Image Data Pipeline
+
+```mermaid
+flowchart LR
+    IMG[Image bytes] --> RESIZE{"> 4 MB?"}
+    RESIZE -->|Yes| THUMB[Resize to 2000px]
+    RESIZE -->|No| CLASSIFY
+    THUMB --> CLASSIFY
+
+    CLASSIFY["Gemini: classify_document()
+    → category string"]
+    CLASSIFY --> EXTRACT["Gemini: extract_fields()
+    → JSON fields dict"]
+    EXTRACT --> VALIDATE[validate + snake_case keys]
+    VALIDATE --> MERGE[schema_merger: union all keys,
+    null-fill missing]
+    MERGE --> JSON[.json file + embedded in response]
+    MERGE --> CSV[.csv file + embedded in response]
+    MERGE --> PDF[.pdf Pillow multi-page]
+```
 
 ---
 
